@@ -2,9 +2,6 @@
  *  Aeon Recessed Door Sensor
  *  Based On: Z-Wave Door/Window Sensor
  *
- *  This is just the basic Z Wave door sensor device type with the followin method added:
- *  def zwaveEvent(physicalgraph.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
- *
  *  Author: Mike
  *  Modified by: Mike
  *  Date: 2014-12-28
