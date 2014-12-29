@@ -31,7 +31,7 @@ metadata {
 			state "open", label: '${name}', icon: "st.contact.contact.open", backgroundColor: "#ffa81e"
 			state "closed", label: '${name}', icon: "st.contact.contact.closed", backgroundColor: "#79b821"
 		}
-        valueTile("battery", "device.battery", inactiveLabel: false, decoration: "flat") {
+        	valueTile("battery", "device.battery", inactiveLabel: false, decoration: "flat") {
 			state "battery", label:'${currentValue}% battery', unit:""
 		}
 
@@ -48,8 +48,7 @@ def parse(String description) {
 	    result = createEvent(descriptionText:description)
 	} else if (description == "updated") {
 		if (!state.MSR) {
-        	log.debug("NO MSR")
-			result = [
+        		result = [
 				secure(zwave.wakeUpV1.wakeUpIntervalSet(seconds:8*60*60, nodeid:zwaveHubNodeId)),
 				secure(zwave.manufacturerSpecificV2.manufacturerSpecificGet()),
 			]
@@ -59,7 +58,7 @@ def parse(String description) {
 		if (cmd) {
 			result = zwaveEvent(cmd)
 		}
-    }
+    	}
 
 	// log.debug("Parse returned ${result}")
 
@@ -93,7 +92,7 @@ def zwaveEvent(physicalgraph.zwave.commands.wakeupv1.WakeUpNotification cmd)
 {
 	def result = [createEvent(descriptionText: "${device.displayName} woke up", isStateChange: false)]
     
-    if (!state.lastbat || (new Date().time) - state.lastbat > 12*60*60*1000) {
+    	if (!state.lastbat || (new Date().time) - state.lastbat > 12*60*60*1000) {
 		result << secure(zwave.batteryV1.batteryGet())
 		result << response("delay 1200")
 	}
