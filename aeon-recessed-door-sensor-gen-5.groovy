@@ -49,7 +49,7 @@ def parse(String description) {
 	} else if (description == "updated") {
 		if (!state.MSR) {
         		result = [
-				secure(zwave.wakeUpV1.wakeUpIntervalSet(seconds:8*60*60, nodeid:zwaveHubNodeId)),
+				secure(zwave.wakeUpV1.wakeUpIntervalSet(seconds:11*60*60 + 300, nodeid:zwaveHubNodeId)),
 				secure(zwave.manufacturerSpecificV2.manufacturerSpecificGet()),
 			]
 		}
@@ -122,9 +122,7 @@ def zwaveEvent(physicalgraph.zwave.commands.manufacturerspecificv2.ManufacturerS
 
 	result << createEvent(descriptionText: "$device.displayName MSR: $msr", isStateChange: false)
 
-	if (msr == "011A-0601-0901") {  // Enerwave motion doesn't always get the associationSet that the hub sends on join
-		result << secure(zwave.associationV1.associationSet(groupingIdentifier:1, nodeId:zwaveHubNodeId))
-	} else if (!device.currentState("battery")) {
+	if (!device.currentState("battery")) {
 		result << secure(zwave.batteryV1.batteryGet())
 	}
 
