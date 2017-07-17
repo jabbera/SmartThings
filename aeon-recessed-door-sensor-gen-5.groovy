@@ -10,13 +10,21 @@
 // for the UI
 metadata {
 	// Automatically generated. Make future change here.
-	definition (name: "Aeon Recessed Door Sensor", namespace: "jabbera", author: "Mike") {
+	definition (name: "Aeon Recessed Door Sensor - Battery Fix", namespace: "jabbera", author: "Mike") {
 		capability "Contact Sensor"
 		capability "Sensor"
 		capability "Battery"
+        capability "Configuration" //Battery Fix
         
-		fingerprint deviceId: "0x0701", inClusters: "0x5E,0x86,0x72,0x98,0xEF,0x5A,0x82"
-                fingerprint deviceId: "0x0701", inClusters: "0x5E 0x30 0x80 0x84 0x70 0x85 0x59 0x71 0x86 0x72 0x73 0x7A 0x98", outClusters: "0x5A 0x82"
+        // New zwave fingerprint format
+        // zw:Ss type:0701 mfr:0086 prod:0102 model:0059 ver:1.13 zwv:3.92 lib:03 cc:5E,86,72,98 ccOut:5A,82 sec:30,80,84,70,85,59,71,7A,73 role:06 ff:8C00 ui:8C00
+        fingerprint mfr: "0086", prod: "0102", model: "0059"
+        
+        //Old fingerprint format
+        fingerprint deviceId: "0x0701", inClusters: "0x5E,0x86,0x72,0x98,0xEF,0x5A,0x82"
+        fingerprint deviceId: "0x0701", inClusters: "0x5E 0x30 0x80 0x84 0x70 0x85 0x59 0x71 0x86 0x72 0x73 0x7A 0x98", outClusters: "0x5A 0x82"
+
+
 	}
 
 	// simulator metadata
@@ -35,12 +43,9 @@ metadata {
         	valueTile("battery", "device.battery", inactiveLabel: false, decoration: "flat") {
 			state "battery", label:'${currentValue}% battery', unit:""
 		}
-        standardTile("refresh", "device.power", inactiveLabel: false, decoration: "flat") {
-	    	state "default", label:'', action:"refresh.refresh", icon:"st.secondary.refresh"
-		}
 
 		main "contact"
-		details(["contact", "battery","configure"])
+		details(["contact", "battery"])
 	}
 }
 
@@ -112,7 +117,10 @@ def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicSet cmd)
 
 def zwaveEvent(physicalgraph.zwave.commands.wakeupv2.WakeUpNotification cmd)
 {
-	log.debug "WakeUpNotification. Asking for battery life."
+	log.debug "Forcing config each time hoping to catch it while awake" // Battery Fix
+    updated() //Battery Fix
+    
+    log.debug "WakeUpNotification. Asking for battery life."
     
 	def result = [createEvent(descriptionText: "${device.displayName} woke up", isStateChange: true, displayed: true)]
         
@@ -172,3 +180,31 @@ private secure(physicalgraph.zwave.Command cmd) {
 	log.debug "Securing command: ${cmd?.inspect()}"
 	response(zwave.securityV1.securityMessageEncapsulation().encapsulate(cmd).format())
 }
+
+//Battery Fix
+def updated()
+{
+	log.debug "settings: ${settings.inspect()}, state: ${state.inspect()}"
+	def cmd = delayBetween([
+		// set wakeup interval to 5 mins
+		//zwave.wakeUpV1.wakeUpIntervalSet(seconds:300, nodeid:zwaveHubNodeId),
+
+		// param #101 (0x65)
+		zwave.configurationV1.configurationSet(parameterNumber: 0x65, size: 1, scaledConfigurationValue: 1),
+		zwave.configurationV1.configurationGet(parameterNumber: 0x65),
+
+		// send battery every 20 hours 20*60*60
+		zwave.configurationV1.configurationSet(parameterNumber: 0x6F, size: 4, scaledConfigurationValue: 20*60*60),
+        
+		zwave.batteryV1.batteryGet(),
+		zwave.sensorBinaryV2.sensorBinaryGet(),
+        
+		// Can use the zwaveHubNodeId variable to add the hub to the device's associations:
+		zwave.associationV1.associationSet(groupingIdentifier:2, nodeId:zwaveHubNodeId)
+    ],2000)
+	log.debug "Configuration: ${cmd}"
+
+	cmd
+    zwave.wakeUpV1.wakeUpNoMoreInformation().format()
+}
+
